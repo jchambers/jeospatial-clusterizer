@@ -1,6 +1,5 @@
 package com.eatthepath.jeospatial.clusterizer;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -50,14 +49,15 @@ public class OpticsClusterizer <E extends GeospatialPoint> {
         this.epsilon = epsilon;
     }
 
-    public List<E> getOrderedPoints(final Collection<E> points, final GeospatialIndex<E> index) {
+    public ReachabilityPlot<E> getReachabilityPlot(final Collection<E> points) {
+        final GeospatialIndex<E> index = new VPTreeGeospatialPointIndex<E>(points);
         final HaversineDistanceFunction distanceFunction = new HaversineDistanceFunction();
 
         final IdentityHashMap<E, Object> processedPoints = new IdentityHashMap<E, Object>(points.size());
         final IdentityHashMap<E, ReachabilityQueueEntry> queueEntries =
                 new IdentityHashMap<E, ReachabilityQueueEntry>(points.size());
 
-        final List<E> orderedPoints = new ArrayList<E>(points.size());
+        final ReachabilityPlot<E> reachabilityPlot = new ReachabilityPlot<E>();
 
         for (final E point : points) {
             if (!processedPoints.containsKey(point)) {
@@ -69,7 +69,7 @@ public class OpticsClusterizer <E extends GeospatialPoint> {
                     final ReachabilityQueueEntry queueEntry = queue.poll();
 
                     processedPoints.put(queueEntry.getPoint(), null);
-                    orderedPoints.add(queueEntry.getPoint());
+                    reachabilityPlot.add(queueEntry.getPoint(), queueEntry.getReachabilityDistance());
                     queueEntries.remove(queueEntry).getPoint();
 
                     final List<E> neighbors = index.getAllWithinRange(queueEntry.getPoint(), this.epsilon);
@@ -99,6 +99,6 @@ public class OpticsClusterizer <E extends GeospatialPoint> {
             }
         }
 
-        return orderedPoints;
+        return reachabilityPlot;
     }
 }

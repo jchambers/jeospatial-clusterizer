@@ -15,6 +15,14 @@ public class ReachabilityPlot<T> {
             this.point = point;
             this.reachabilityDistance = reachabilityDistance;
         }
+
+        public T getPoint() {
+            return this.point;
+        }
+
+        public double getReachabilityDistance() {
+            return this.reachabilityDistance;
+        }
     }
 
     public ReachabilityPlot() {
@@ -23,5 +31,17 @@ public class ReachabilityPlot<T> {
 
     public void add(final T point, final double reachabilityDistance) {
         this.entries.add(new ReachabilityPlotEntry(point, reachabilityDistance));
+    }
+
+    public int size() {
+        return this.entries.size();
+    }
+
+    public T getPoint(final int index) {
+        return this.entries.get(index).getPoint();
+    }
+
+    public double getReachabilityDistance(final int index) {
+        return this.entries.get(index).getReachabilityDistance();
     }
 }
