@@ -5,43 +5,46 @@ import java.util.List;
 
 public class ReachabilityPlot<T> {
 
-    private final List<ReachabilityPlotEntry> entries;
+    private final List<ReachabilityPlotEntry<T>> entries;
 
-    private class ReachabilityPlotEntry {
-        private final T point;
-        private final Double reachabilityDistance;
-
-        public ReachabilityPlotEntry(final T point, final Double reachabilityDistance) {
-            this.point = point;
-            this.reachabilityDistance = reachabilityDistance;
-        }
-
-        public T getPoint() {
-            return this.point;
-        }
-
-        public double getReachabilityDistance() {
-            return this.reachabilityDistance;
-        }
+    protected ReachabilityPlot() {
+        this(new ArrayList<ReachabilityPlotEntry<T>>());
     }
 
-    public ReachabilityPlot() {
-        this.entries = new ArrayList<ReachabilityPlotEntry>();
+    protected ReachabilityPlot(List<ReachabilityPlotEntry<T>> entries) {
+        this.entries = new ArrayList<ReachabilityPlotEntry<T>>(entries);
     }
 
-    public void add(final T point, final double reachabilityDistance) {
-        this.entries.add(new ReachabilityPlotEntry(point, reachabilityDistance));
+    protected void add(final T point, final double reachabilityDistance) {
+        this.entries.add(new ReachabilityPlotEntry<T>(point, reachabilityDistance));
+    }
+
+    protected List<ReachabilityPlotEntry<T>> getEntries() {
+        return this.entries;
     }
 
     public int size() {
         return this.entries.size();
     }
 
-    public T getPoint(final int index) {
-        return this.entries.get(index).getPoint();
-    }
+    public List<Cluster<T>> getClustersWithReachabilityDistanceThreshold(double threshold) {
+        final ArrayList<Cluster<T>> clusters = new ArrayList<Cluster<T>>();
+        final ArrayList<ReachabilityPlotEntry<T>> collectedEntries = new ArrayList<ReachabilityPlotEntry<T>>();
 
-    public double getReachabilityDistance(final int index) {
-        return this.entries.get(index).getReachabilityDistance();
+        for (final ReachabilityPlotEntry<T> entry : this.entries) {
+            if (entry.getReachabilityDistance() > threshold) {
+                if (!collectedEntries.isEmpty()) {
+                    clusters.add(new Cluster<T>(collectedEntries, threshold));
+                }
+
+                collectedEntries.clear();
+            }
+
+            collectedEntries.add(entry);
+        }
+
+        clusters.add(new Cluster<T>(collectedEntries, threshold));
+
+        return clusters;
     }
 }

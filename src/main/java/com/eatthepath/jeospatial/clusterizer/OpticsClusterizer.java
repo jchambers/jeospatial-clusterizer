@@ -67,7 +67,6 @@ public class OpticsClusterizer <E extends GeospatialPoint> {
 
                 while (!queue.isEmpty()) {
                     final ReachabilityQueueEntry queueEntry = queue.poll();
-
                     processedPoints.put(queueEntry.getPoint(), null);
                     reachabilityPlot.add(queueEntry.getPoint(), queueEntry.getReachabilityDistance());
                     queueEntries.remove(queueEntry.getPoint());
