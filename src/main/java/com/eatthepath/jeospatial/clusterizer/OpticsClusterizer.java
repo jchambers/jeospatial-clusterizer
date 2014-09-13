@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.PriorityQueue;
 
 import com.eatthepath.jeospatial.GeospatialIndex;
 import com.eatthepath.jeospatial.GeospatialPoint;
@@ -16,8 +17,6 @@ public class OpticsClusterizer <E extends GeospatialPoint> {
     private final int minimumPointsInCluster;
     private final double epsilon;
 
-    private static final HaversineDistanceFunction DISTANCE_FUNCTION = new HaversineDistanceFunction();
-
     private class ReachabilityQueueEntry implements Comparable<ReachabilityQueueEntry> {
         private final E point;
         private final double reachabilityDistance;
@@ -25,6 +24,10 @@ public class OpticsClusterizer <E extends GeospatialPoint> {
         public ReachabilityQueueEntry(final E point, final double reachabilityDistance) {
             this.point = point;
             this.reachabilityDistance = reachabilityDistance;
+        }
+
+        public E getPoint() {
+            return this.point;
         }
 
         public double getReachabilityDistance() {
@@ -47,28 +50,55 @@ public class OpticsClusterizer <E extends GeospatialPoint> {
         this.epsilon = epsilon;
     }
 
-    public List<E> getOrderedPoints(final Collection<E> points) {
-        final GeospatialIndex<E> index = new VPTreeGeospatialPointIndex<E>(points);
+    public List<E> getOrderedPoints(final Collection<E> points, final GeospatialIndex<E> index) {
+        final HaversineDistanceFunction distanceFunction = new HaversineDistanceFunction();
 
         final IdentityHashMap<E, Object> processedPoints = new IdentityHashMap<E, Object>(points.size());
+        final IdentityHashMap<E, ReachabilityQueueEntry> queueEntries =
+                new IdentityHashMap<E, ReachabilityQueueEntry>(points.size());
+
         final List<E> orderedPoints = new ArrayList<E>(points.size());
 
         for (final E point : points) {
             if (!processedPoints.containsKey(point)) {
-                final List<E> neighbors = index.getAllWithinRange(point, this.epsilon);
 
-                processedPoints.put(point, null);
-                orderedPoints.add(point);
+                final PriorityQueue<ReachabilityQueueEntry> queue = new PriorityQueue<ReachabilityQueueEntry>();
+                queue.add(new ReachabilityQueueEntry(point, Double.POSITIVE_INFINITY));
+
+                while (!queue.isEmpty()) {
+                    final ReachabilityQueueEntry queueEntry = queue.poll();
+
+                    processedPoints.put(queueEntry.getPoint(), null);
+                    orderedPoints.add(queueEntry.getPoint());
+                    queueEntries.remove(queueEntry).getPoint();
+
+                    final List<E> neighbors = index.getAllWithinRange(queueEntry.getPoint(), this.epsilon);
+                    neighbors.remove(queueEntry.getPoint());
+
+                    if (neighbors.size() >= this.minimumPointsInCluster) {
+                        final double coreDistance = distanceFunction.getDistance(
+                                queueEntry.getPoint(), neighbors.get(this.minimumPointsInCluster - 1));
+
+                        for (final E neighbor : neighbors) {
+                            if (!processedPoints.containsKey(neighbor)) {
+                                final double reachabilityDistance = Math.max(
+                                        coreDistance, distanceFunction.getDistance(queueEntry.getPoint(), neighbor));
+
+                                if (queueEntries.containsKey(neighbor)) {
+                                    queue.remove(queueEntries.get(neighbor));
+                                }
+
+                                final ReachabilityQueueEntry entry = new ReachabilityQueueEntry(neighbor, reachabilityDistance);
+
+                                queueEntries.put(neighbor, entry);
+                                queue.add(entry);
+                            }
+                        }
+                    }
+                }
             }
         }
 
         return orderedPoints;
-    }
-
-    private Double getCoreDistance(final E point, final GeospatialIndex<E> index) {
-        final List<E> neighbors = index.getAllWithinRange(point, epsilon);
-
-        return (neighbors.size() < minimumPointsInCluster) ?
-                null : DISTANCE_FUNCTION.getDistance(point, neighbors.get(minimumPointsInCluster - 1));
     }
 }
