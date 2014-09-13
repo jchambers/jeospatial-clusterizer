@@ -70,7 +70,7 @@ public class OpticsClusterizer <E extends GeospatialPoint> {
 
                     processedPoints.put(queueEntry.getPoint(), null);
                     reachabilityPlot.add(queueEntry.getPoint(), queueEntry.getReachabilityDistance());
-                    queueEntries.remove(queueEntry).getPoint();
+                    queueEntries.remove(queueEntry.getPoint());
 
                     final List<E> neighbors = index.getAllWithinRange(queueEntry.getPoint(), this.epsilon);
                     neighbors.remove(queueEntry.getPoint());
@@ -84,14 +84,14 @@ public class OpticsClusterizer <E extends GeospatialPoint> {
                                 final double reachabilityDistance = Math.max(
                                         coreDistance, distanceFunction.getDistance(queueEntry.getPoint(), neighbor));
 
-                                if (queueEntries.containsKey(neighbor)) {
+                                if (!queueEntries.containsKey(neighbor) || reachabilityDistance < queueEntries.get(neighbor).getReachabilityDistance()) {
                                     queue.remove(queueEntries.get(neighbor));
+
+                                    final ReachabilityQueueEntry entry = new ReachabilityQueueEntry(neighbor, reachabilityDistance);
+
+                                    queueEntries.put(neighbor, entry);
+                                    queue.add(entry);
                                 }
-
-                                final ReachabilityQueueEntry entry = new ReachabilityQueueEntry(neighbor, reachabilityDistance);
-
-                                queueEntries.put(neighbor, entry);
-                                queue.add(entry);
                             }
                         }
                     }
